@@ -9,7 +9,6 @@
   #map-container {
     height: 100%;
     width: 100%;
-    /* temporarily set the background color so we can tell where the map container is positioned */
     background-color: lightgrey;
   }
   
@@ -45,6 +44,15 @@
       font-size: 1.125rem;
       min-width: 320px;
     }
+  }
+  
+  .search-box-container {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    width: 300px;
+    max-width: calc(100vw - 24px);
   }
   
   .reset-button {
