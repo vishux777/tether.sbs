@@ -9,11 +9,11 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^5.1.0",
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.39.3",
     "cors": "^2.8.5",
-    "morgan": "^1.10.0",
     "dotenv": "^16.4.5",
-    "@supabase/supabase-js": "^2.39.3"
+    "express": "^5.1.0",
+    "morgan": "^1.10.0"
   }
 }
-

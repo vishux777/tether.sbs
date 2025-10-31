@@ -2,8 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const path = require('path');
 
-dotenv.config();
+// Load .env from root directory (one level up from server/)
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 

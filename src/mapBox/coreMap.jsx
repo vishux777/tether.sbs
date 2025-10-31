@@ -13,8 +13,8 @@ function App() {
     const [center, setCenter] = useState([-122.6765, 45.5231])
     const [zoom, setZoom] = useState(10)
     const [mapLoaded, setMapLoaded] = useState(false)
-    const [inputValue, setInputValue] = useState('')
-    const [userLocation, setUserLocation] = useState(null)
+  const [inputValue, setInputValue] = useState('')
+  const [userLocation, setUserLocation] = useState(null)
 
   const mapRef = useRef()
   const mapContainerRef = useRef()
@@ -128,85 +128,282 @@ function App() {
       }
       
       try {
-        // Call backend API
-        const response = await fetch(
-          `http://localhost:3000/api/directions?start=${start[0]},${start[1]}&end=${end[0]},${end[1]}`
-        );
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMessage = errorData.message || errorData.error || 'Failed to fetch route';
-          throw new Error(errorMessage);
-        }
+        // Fetch both routes in parallel
+        const [regularResponse, safeResponse] = await Promise.allSettled([
+          fetch(`http://localhost:3000/api/directions?start=${start[0]},${start[1]}&end=${end[0]},${end[1]}`),
+          fetch(`http://localhost:3000/api/directions/safe?start=${start[0]},${start[1]}&end=${end[0]},${end[1]}`)
+        ]);
 
-        const data = await response.json();
-        
-        if (data.geometry) {
-          // Format geometry as GeoJSON Feature
-          const routeGeoJSON = {
-            type: 'Feature',
-            properties: {},
-            geometry: data.geometry
-          };
+        // Handle regular route (standard/fastest route)
+        let regularData = null;
+        if (regularResponse.status === 'fulfilled' && regularResponse.value.ok) {
+          regularData = await regularResponse.value.json();
           
-          // Add route to map
-          const routeSource = map.getSource('route');
-          if (routeSource) {
-            routeSource.setData(routeGeoJSON);
-          } else {
-            map.addSource('route', {
-              type: 'geojson',
-              data: routeGeoJSON
-            });
+          if (regularData.geometry) {
+            const routeGeoJSON = {
+              type: 'Feature',
+              properties: {},
+              geometry: regularData.geometry
+            };
+            
+            // Add or update regular route layer
+            const regularSource = map.getSource('route-regular');
+            if (regularSource) {
+              regularSource.setData(routeGeoJSON);
+            } else {
+              map.addSource('route-regular', {
+                type: 'geojson',
+                data: routeGeoJSON
+              });
 
-            map.addLayer({
-              id: 'route',
-              type: 'line',
-              source: 'route',
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
-              paint: {
-                'line-color': '#3887be',
-                'line-width': 5,
-                'line-opacity': 0.75
-              }
-            });
+              map.addLayer({
+                id: 'route-regular',
+                type: 'line',
+                source: 'route-regular',
+                layout: {
+                  'line-join': 'round',
+                  'line-cap': 'round'
+                },
+                paint: {
+                  'line-color': '#3887be', // Blue for regular route
+                  'line-width': 5,
+                  'line-opacity': 0.75
+                }
+              });
+            }
+            console.log('Regular route (blue) displayed:', regularData.distance / 1000, 'km');
+          } else {
+            console.warn('Regular route has no geometry');
           }
+        } else {
+          console.error('Regular route fetch failed:', 
+            regularResponse.status === 'rejected' ? regularResponse.reason : 'HTTP error');
         }
 
-        // Get the sidebar and add the instructions
-        const instructions = document.getElementById('instructions');
-        if (instructions && data.legs && data.legs[0] && data.legs[0].steps) {
-          const steps = data.legs[0].steps;
-          const durationMin = Math.floor(data.duration / 60);
-          const distanceKm = (data.distance / 1000).toFixed(2);
-          const distanceMiles = (data.distance / 1609.34).toFixed(2);
+        // Handle safe route (safest route - might be longer to avoid incidents)
+        let safeData = null;
+        if (safeResponse.status === 'fulfilled' && safeResponse.value.ok) {
+          safeData = await safeResponse.value.json();
+          
+          const safestRoute = safeData.safestRoute || safeData;
+          const geometry = safestRoute.geometry || safeData.geometry;
+          
+          if (geometry) {
+            const routeGeoJSON = {
+              type: 'Feature',
+              properties: {},
+              geometry: geometry
+            };
+            
+            // Add or update safe route layer
+            const safeSource = map.getSource('route-safe');
+            if (safeSource) {
+              safeSource.setData(routeGeoJSON);
+            } else {
+              map.addSource('route-safe', {
+                type: 'geojson',
+                data: routeGeoJSON
+              });
 
+              map.addLayer({
+                id: 'route-safe',
+                type: 'line',
+                source: 'route-safe',
+                layout: {
+                  'line-join': 'round',
+                  'line-cap': 'round'
+                },
+                paint: {
+                  'line-color': '#10b981', // Green for safe route
+                  'line-width': 6, // Slightly thicker to make it stand out
+                  'line-opacity': 0.85
+                }
+              });
+            }
+            console.log('Safe route (green) displayed:', safestRoute.distance / 1000, 'km');
+          } else {
+            console.warn('Safe route has no geometry');
+          }
+        } else {
+          console.error('Safe route fetch failed:', 
+            safeResponse.status === 'rejected' ? safeResponse.reason : 'HTTP error');
+        }
+
+        // Update instructions panel with both routes
+        const instructions = document.getElementById('instructions');
+        if (!instructions) return;
+
+        let instructionsHTML = '';
+        
+        // Regular route info
+        if (regularData) {
+          const durationMin = Math.floor(regularData.duration / 60);
+          const distanceKm = (regularData.distance / 1000).toFixed(2);
+          const distanceMiles = (regularData.distance / 1609.34).toFixed(2);
+          
           let tripInstructions = '';
-          // Display all steps from the response
-          for (let i = 0; i < steps.length; i++) {
-            const step = steps[i];
-            if (step.maneuver && step.maneuver.instruction) {
-              tripInstructions += `<li>${step.maneuver.instruction}</li>`;
+          if (regularData.legs && regularData.legs[0] && regularData.legs[0].steps) {
+            const steps = regularData.legs[0].steps;
+            for (let i = 0; i < steps.length; i++) {
+              const step = steps[i];
+              if (step.maneuver && step.maneuver.instruction) {
+                tripInstructions += `<li>${step.maneuver.instruction}</li>`;
+              }
             }
           }
 
-          // Show all content including all steps
-          instructions.innerHTML = `
-            <p id="prompt">📍 Click the map to get directions to another destination</p>
-            <p><strong>⏱️ Duration: ${durationMin} min | 📍 Distance: ${distanceKm} km (${distanceMiles} mi)</strong></p>
-            <h3 style="margin: 20px 0 12px 0; font-size: 16px; font-weight: 600; color: #333;">Route Instructions (${steps.length} steps):</h3>
-            <ol style="margin: 0; padding-left: 24px;">${tripInstructions}</ol>
-          `;
-        } else if (instructions) {
-          // Fallback if no steps
-          instructions.innerHTML = `
-            <p id="prompt">📍 Click the map to get directions to another destination</p>
-            <p style="color: #666;">No route instructions available.</p>
+          instructionsHTML += `
+            <div style="margin-bottom: 20px; padding: 12px; background-color: #eff6ff; border-radius: 8px; border-left: 4px solid #3887be;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1e40af;">📍 Standard Route (Blue)</h3>
+              <p style="margin: 4px 0;"><strong>⏱️ Duration: ${durationMin} min</strong></p>
+              <p style="margin: 4px 0;"><strong>📍 Distance: ${distanceKm} km (${distanceMiles} mi)</strong></p>
+              ${tripInstructions ? `<h4 style="margin: 12px 0 8px 0; font-size: 14px; font-weight: 600;">Route Instructions:</h4><ol style="margin: 0; padding-left: 24px; font-size: 13px;">${tripInstructions}</ol>` : ''}
+            </div>
           `;
         }
+
+        // Safe route info
+        if (safeData && safeData.safestRoute) {
+          const safestRoute = safeData.safestRoute;
+          
+          // Validate route data before displaying
+          if (!safestRoute.distance || safestRoute.distance === 0 || !safestRoute.duration) {
+            console.error('Invalid safe route data received:', safestRoute);
+            console.error('Safe data:', safeData);
+            
+            // Try to find a valid route from allRoutes
+            if (safeData.allRoutes && safeData.allRoutes.length > 0) {
+              const validRoute = safeData.allRoutes.find(r => r.distance && r.distance > 0);
+              if (validRoute) {
+                console.warn('Using valid route from allRoutes:', validRoute.routeName);
+                Object.assign(safestRoute, {
+                  distance: validRoute.distance,
+                  duration: validRoute.duration
+                });
+              }
+            }
+          }
+          
+          const durationMin = Math.floor((safestRoute.duration || 0) / 60);
+          const distanceKm = ((safestRoute.distance || 0) / 1000).toFixed(2);
+          const distanceMiles = ((safestRoute.distance || 0) / 1609.34).toFixed(2);
+          const safetyScore = safeData.analysis?.routeScores?.[safestRoute.routeName] || 10;
+          
+          let tripInstructions = '';
+          if (safestRoute.fullRoute && safestRoute.fullRoute.legs && safestRoute.fullRoute.legs[0] && safestRoute.fullRoute.legs[0].steps) {
+            const steps = safestRoute.fullRoute.legs[0].steps;
+            for (let i = 0; i < steps.length; i++) {
+              const step = steps[i];
+              if (step.maneuver && step.maneuver.instruction) {
+                tripInstructions += `<li>${step.maneuver.instruction}</li>`;
+              }
+            }
+          }
+          
+          // Build route comparison table
+          let routesTable = '';
+          if (safeData.allRoutes && safeData.allRoutes.length > 1) {
+            routesTable = '<div style="margin: 12px 0; padding: 10px; background-color: #f9fafb; border-radius: 6px;"><h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600;">Route Comparison:</h4><ul style="margin: 0; padding-left: 20px; font-size: 12px;">';
+            safeData.allRoutes.forEach(route => {
+              const isSafest = route.routeName === safestRoute.routeName;
+              routesTable += `<li style="margin: 4px 0; ${isSafest ? 'font-weight: 600; color: #10b981;' : ''}">${route.routeName}: Safety Score ${route.safetyScore}/10 (${(route.distance / 1000).toFixed(2)} km, ${Math.floor(route.duration / 60)} min)${isSafest ? ' ✓ SAFEST' : ''}</li>`;
+            });
+            routesTable += '</ul></div>';
+          }
+
+          // Display detailed analysis reason
+          let analysisReason = '';
+          if (safeData.analysis?.reason) {
+            analysisReason = `
+              <div style="margin: 12px 0; padding: 10px; background-color: #d1fae5; border-radius: 6px; border-left: 3px solid #10b981;">
+                <p style="margin: 0; font-size: 13px; color: #065f46; line-height: 1.5;">
+                  <strong style="color: #047857;">🛡️ Why This Route is Safest:</strong><br/>
+                  ${safeData.analysis.reason}
+                </p>
+              </div>
+            `;
+          }
+          
+          // Display incident information if available
+          let incidentInfo = '';
+          if (safeData.incidentsFound !== undefined) {
+            if (safeData.incidentsFound > 0 && safeData.incidents && safeData.incidents.length > 0) {
+              const incidentsList = safeData.incidents.slice(0, 5).map(incident => {
+                const timeAgo = new Date(incident.time);
+                const daysAgo = Math.floor((Date.now() - timeAgo.getTime()) / (1000 * 60 * 60 * 24));
+                return `<li style="margin: 4px 0; font-size: 12px;"><strong>${incident.type}:</strong> ${incident.title.substring(0, 80)}${incident.title.length > 80 ? '...' : ''} (${daysAgo} days ago)</li>`;
+              }).join('');
+              
+              incidentInfo = `
+                <div style="margin: 12px 0; padding: 10px; background-color: #fef3c7; border-radius: 6px; border-left: 3px solid #f59e0b;">
+                  <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #92400e;">
+                    📰 Recent Incidents in Area (${safeData.incidentsFound} found):
+                  </p>
+                  <ul style="margin: 0; padding-left: 20px; font-size: 12px; color: #78350f;">
+                    ${incidentsList}
+                  </ul>
+                </div>
+              `;
+            } else if (safeData.nearestIncident) {
+              // Show nearest incident when no local incidents found
+              const nearest = safeData.nearestIncident;
+              incidentInfo = `
+                <div style="margin: 12px 0; padding: 10px; background-color: #fef3c7; border-radius: 6px; border-left: 3px solid #f59e0b;">
+                  <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: #92400e;">
+                    📍 Nearest Incident Found:
+                  </p>
+                  <p style="margin: 4px 0; font-size: 12px; color: #78350f;">
+                    <strong>${nearest.type}:</strong> ${nearest.title.substring(0, 80)}${nearest.title.length > 80 ? '...' : ''}
+                  </p>
+                  <p style="margin: 4px 0; font-size: 11px; color: #92400e;">
+                    Location: ${nearest.location} (approx. ${nearest.distanceKm}km away)
+                  </p>
+                </div>
+              `;
+            } else {
+              // No incidents at all
+              incidentInfo = `
+                <div style="margin: 12px 0; padding: 10px; background-color: #d1fae5; border-radius: 6px; border-left: 3px solid #10b981;">
+                  <p style="margin: 0; font-size: 12px; color: #065f46;">
+                    ✓ No recent incidents found in the area (last 365 days) - all routes are safe
+                  </p>
+                </div>
+              `;
+            }
+          }
+
+          instructionsHTML += `
+            <div style="padding: 12px; background-color: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #047857;">🛡️ Safe Route (Green)</h3>
+              <p style="margin: 4px 0;"><strong>⏱️ Duration: ${durationMin} min</strong></p>
+              <p style="margin: 4px 0;"><strong>📍 Distance: ${distanceKm} km (${distanceMiles} mi)</strong></p>
+              ${analysisReason}
+              ${incidentInfo}
+              ${routesTable}
+              ${tripInstructions ? `<h4 style="margin: 12px 0 8px 0; font-size: 14px; font-weight: 600;">Route Instructions:</h4><ol style="margin: 0; padding-left: 24px; font-size: 13px;">${tripInstructions}</ol>` : ''}
+            </div>
+          `;
+        }
+
+        // Show error messages if any route failed
+        if (regularResponse.status === 'rejected' || (regularResponse.status === 'fulfilled' && !regularResponse.value.ok)) {
+          instructionsHTML += `
+            <div style="margin-top: 12px; padding: 10px; background-color: #fef2f2; border-radius: 6px; border-left: 3px solid #dc2626;">
+              <p style="margin: 0; color: #dc2626; font-size: 13px;">⚠️ Could not fetch standard route</p>
+            </div>
+          `;
+        }
+
+        if (safeResponse.status === 'rejected' || (safeResponse.status === 'fulfilled' && !safeResponse.value.ok)) {
+          instructionsHTML += `
+            <div style="margin-top: 12px; padding: 10px; background-color: #fef2f2; border-radius: 6px; border-left: 3px solid #dc2626;">
+              <p style="margin: 0; color: #dc2626; font-size: 13px;">⚠️ Could not fetch safe route</p>
+            </div>
+          `;
+        }
+
+        instructionsHTML += `<p style="margin-top: 16px; font-size: 12px; color: #666;">📍 Click the map to get directions to another destination</p>`;
+        instructions.innerHTML = instructionsHTML;
       } catch (error) {
         console.error('Error fetching route:', error);
         // Display error in instructions panel
@@ -346,12 +543,22 @@ function App() {
         mapRef.current.remove()
       }
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Map initialization should only run once
 
   return (
     <>
           <div className="sidebar">
         Longitude: {center[0].toFixed(4)} | Latitude: {center[1].toFixed(4)} | Zoom: {zoom.toFixed(2)}
+        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+          <p style={{ fontSize: '12px', margin: 0, color: 'rgba(255,255,255,0.9)', lineHeight: '1.6' }}>
+            <strong style={{ color: '#3887be' }}>📍 Blue line</strong> = Standard route<br/>
+            <strong style={{ color: '#10b981' }}>🛡️ Green line</strong> = Safe route<br/>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>
+              Both routes shown simultaneously
+            </span>
+          </p>
+        </div>
       </div>
       <div id='map-container' ref={mapContainerRef}/>
       {mapLoaded && mapRef.current && (
