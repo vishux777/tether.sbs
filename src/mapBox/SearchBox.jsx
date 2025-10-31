@@ -11,8 +11,8 @@ export default function MapSearchBox({ accessToken, map, mapboxgl, value, onChan
             marker={marker}
             placeholder="Search for a place"
             options={{
-                country: ['US'],
-                language: ['en'],
+                country: ['IN', 'US'],
+                language: 'en',
             }}
             {...props}
         />
