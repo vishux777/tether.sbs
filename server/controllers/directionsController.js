@@ -58,7 +58,7 @@ async function getDirections(req, res) {
       alternatives: 'false',
     });
 
-    const url = `${DIRECTIONS_API_URL}/${coordinates}?${params.toString()}`;
+    const url = `${DIRECTIONS_API_URL}/${coordinates}?${params.toString()}`; //meat
 
     const response = await fetch(url); //apiCALL
 

@@ -23,9 +23,9 @@ app.get('/', (_req, res) => {
 });
 
 // All API routes
-app.use('/api', require('./routes'));
+app.use('/api', require('./routes')); //the_meat
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

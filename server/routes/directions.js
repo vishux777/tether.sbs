@@ -4,7 +4,7 @@ const { getDirections } = require('../controllers/directionsController');
 
 const router = express.Router();
 
-router.get('/', getDirections);
+router.get('/', getDirections); //api/directions
 
 module.exports = router;
 
