@@ -7,9 +7,10 @@
   }
   
   #map-container {
+    padding: 50px;
     height: 100%;
     width: 100%;
-    background-color: lightgrey;
+
   }
   
   .sidebar {
@@ -63,4 +64,100 @@
     padding: 4px 10px;
     border-radius: 10px;
     cursor: pointer;
+  }
+  
+  #instructions {
+    position: absolute;
+    left: 12px;
+    top: 120px;
+    bottom: 20px;
+    width: 380px;
+    max-width: calc(100vw - 24px);
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+    overflow-x: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    z-index: 10;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  #instructions #prompt {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 16px 0;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #f0f0f0;
+  }
+
+  #instructions p {
+    margin: 0 0 12px 0;
+    color: #555;
+  }
+
+  #instructions p strong {
+    font-size: 18px;
+    color: #2563eb;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: #eff6ff;
+    border-radius: 8px;
+    border-left: 4px solid #2563eb;
+  }
+
+  #instructions ol {
+    margin: 16px 0 0 0;
+    padding-left: 24px;
+    color: #333;
+  }
+
+  #instructions li {
+    margin-bottom: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+  }
+
+  #instructions li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  /* Custom scrollbar for instructions */
+  #instructions::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #instructions::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  #instructions::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+  }
+
+  #instructions::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  @media (max-width: 768px) {
+    #instructions {
+      width: calc(100% - 24px);
+      left: 12px;
+      top: 100px;
+      font-size: 13px;
+      padding: 16px;
+    }
+    
+    .sidebar {
+      margin-bottom: 4px;
+    }
   }
