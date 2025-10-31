@@ -1,0 +1,66 @@
+#root {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+  
+  #map-container {
+    height: 100%;
+    width: 100%;
+    background-color: lightgrey;
+  }
+  
+  .sidebar {
+    background-color: rgb(35 55 75 / 90%);
+    color: #fff;
+    padding: 1rem 1.5rem;
+    font-family: monospace;
+    font-size: clamp(0.875rem, 2vw, 1.125rem);
+    z-index: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 12px;
+    border-radius: 8px;
+    min-width: 280px;
+    max-width: 90vw;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      min-width: 240px;
+      margin: 8px;
+    }
+  }
+  
+  @media (min-width: 1200px) {
+    .sidebar {
+      padding: 1.25rem 2rem;
+      font-size: 1.125rem;
+      min-width: 320px;
+    }
+  }
+  
+  .search-box-container {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+    width: 300px;
+    max-width: calc(100vw - 24px);
+  }
+  
+  .reset-button {
+    position: absolute;
+    top: 50px;
+    z-index: 1;
+    left: 12px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
