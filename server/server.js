@@ -2,30 +2,32 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+const path = require('path');
 
-dotenv.config();
-
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
+// Load .env from root directory (one level up from server/)
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Using Supabase; no explicit connection step needed
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-
+// Simple health check
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-const PORT = process.env.PORT || 5000;
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.json({ message: 'Server is running', health: '/api/health' });
+});
+
+// All API routes
+app.use('/api', require('./routes')); //the_meat
+
+const PORT = process.env.PORT;
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
