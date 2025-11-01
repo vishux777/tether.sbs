@@ -30,6 +30,12 @@ const parseCoordinates = (c) => {
   return [lng, lat];
 };
 
+const getDateBeforeDays = (days) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().split('T')[0];
+};
+
 const safeFetch = async (url) => {
   try {
     const res = await fetch(url);
@@ -108,9 +114,12 @@ async function getIncidents(lat, lng) {
     }
     if (!model) return [];
 
+    const currentDate = new Date().toISOString().split('T')[0];
     const prompt = `You are a safety incident reporter. Search for recent safety incidents in ${city}, India.
 
-Look for incidents in the past **90 days** involving:
+IMPORTANT: Today's date is ${currentDate}. Only search for incidents that occurred in the past 90 days (between ${getDateBeforeDays(90)} and ${currentDate}).
+
+Look for incidents involving:
 - Theft/Robbery
 - Assault/Violence/Attacks
 - Traffic Accidents/Road accidents
@@ -120,16 +129,28 @@ Return ONLY a JSON array of incidents. Each incident should have:
 - type: One of "Theft", "Assault", "Traffic Accident", or "Protest"
 - title: Brief headline
 - description: 2-3 sentence summary (max 150 chars)
-- time: Approximate date in ISO format
+- time: Approximate date in ISO format (must be within last 90 days)
 
-If no incidents found, return empty array [].`;
+If no recent incidents found in the past 90 days, return empty array [].`;
 
     const result = await model.generateContent(prompt);
     const text = (await result.response).text();
 
     // 🚨 IMPROVED: No regex needed!
     const incidents = JSON.parse(text);
-    return Array.isArray(incidents) ? incidents.slice(0, 20) : [];
+    
+    // Filter out incidents older than 90 days
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+    
+    const recentIncidents = Array.isArray(incidents) 
+      ? incidents.filter(incident => {
+          const incidentDate = new Date(incident.time);
+          return incidentDate >= ninetyDaysAgo;
+        })
+      : [];
+    
+    return recentIncidents.slice(0, 20);
     
   } catch (e) {
     console.warn('Gemini incidents fetch failed:', e.message);
