@@ -1,7 +1,4 @@
 /**
- * Safe Directions Controller - FINAL & BULLETPROOF
- * 100% working, no nulls, no crashes, production-ready
- *
  * (Version 2 - Patched by Gemini)
  * - Fixed: Added node-fetch for server-side compatibility (Fixes 'fetch is not defined')
  * - Fixed: Updated to 'gemini-2.5-pro' & 'gemini-2.5-flash' (Fixes 404 errors)
@@ -51,6 +48,7 @@ const safeFetch = async (url) => {
 
 // ───────────────────── 1. MAPBOX ROUTES ─────────────────────
 async function getRouteAlternatives(start, end) {
+  
   const coords = `${start[0]},${start[1]};${end[0]},${end[1]}`;
   const params = new URLSearchParams({
     access_token: MAPBOX_TOKEN,

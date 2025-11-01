@@ -1,15 +1,41 @@
 const { supabase } = require('../config/db');
 
 async function getProfile(req, res) {
-  // Basic profile from auth user; extend to fetch from a 'profiles' table if present
+  // Fetch profile from Users2 table in Supabase
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.substring(7) : null;
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data?.user) {
+  const { data: authData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authData?.user) {
     return res.status(401).json({ message: 'Not authorized' });
   }
-  const user = data.user;
-  return res.json({ id: user.id, email: user.email, user_metadata: user.user_metadata });
+
+  const userId = authData.user.id;
+  
+  // Try to fetch from Users2 table
+  const { data: profileData, error: profileError } = await supabase
+    .from('Users2')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  // If profile exists, return it; otherwise return basic auth data
+  if (!profileError && profileData) {
+    return res.json({
+      id: profileData.id,
+      email: profileData.email,
+      created_at: profileData.created_at,
+      updated_at: profileData.updated_at,
+      last_sign_in_at: profileData.last_sign_in_at,
+      ...profileData
+    });
+  }
+
+  // Fallback to auth user data if profile doesn't exist
+  return res.json({ 
+    id: authData.user.id, 
+    email: authData.user.email, 
+    user_metadata: authData.user.user_metadata 
+  });
 }
 
 async function updateLocation(req, res) {

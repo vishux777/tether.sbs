@@ -550,15 +550,6 @@ function App() {
     <>
           <div className="sidebar">
         Longitude: {center[0].toFixed(4)} | Latitude: {center[1].toFixed(4)} | Zoom: {zoom.toFixed(2)}
-        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-          <p style={{ fontSize: '12px', margin: 0, color: 'rgba(255,255,255,0.9)', lineHeight: '1.6' }}>
-            <strong style={{ color: '#3887be' }}>📍 Blue line</strong> = Standard route<br/>
-            <strong style={{ color: '#10b981' }}>🛡️ Green line</strong> = Safe route<br/>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontStyle: 'italic' }}>
-              Both routes shown simultaneously
-            </span>
-          </p>
-        </div>
       </div>
       <div id='map-container' ref={mapContainerRef}/>
       {mapLoaded && mapRef.current && (

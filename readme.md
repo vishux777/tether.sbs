@@ -4,10 +4,12 @@ Tether is a navigation app that uses Google's Gemini AI to analyze route safety 
 
 ## Features
 
+- 🎨 **Beautiful Landing Page** - Modern, Japanese-inspired design with stunning animations
 - 🗺️ Interactive map with route planning
 - 🛡️ AI-powered safe route analysis using Gemini
 - 📍 Multiple route alternatives comparison
 - 🚨 Safety scoring based on recent incidents
+- 💬 WhatsApp integration for easy route sharing
 
 ## Architecture
 
@@ -45,20 +47,21 @@ cd server && npm install
 
 2. Configure environment variables:
 
-Create a `.env` file in the `server` directory with:
+Create a `.env` file in the **root directory** with:
 
 ```env
 PORT=3000
 VITE_MAPBOX_TOKEN=your_mapbox_access_token_here
 GEMINI_API_KEY=your_gemini_api_key_here
 NEWS_API_KEY=your_news_api_key_here  # Optional
+
+# Supabase Configuration
+SUPABASE_URL=https://cmhkdffrftxnnlsqepki.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here  # Optional
 ```
 
-Or create a `.env` file in the root directory for Vite:
-
-```env
-VITE_MAPBOX_TOKEN=your_mapbox_access_token_here
-```
+The server loads environment variables from the root `.env` file.
 
 ### Running the Application
 
@@ -125,6 +128,9 @@ tether/
 │   ├── routes/          # API routes
 │   └── server.js        # Server entry point
 ├── src/                 # React frontend
+│   ├── landing/         # Landing page components
+│   │   ├── Hero.jsx     # Main landing page
+│   │   └── Hero.css     # Landing page styles
 │   └── mapBox/          # Map components
 └── public/              # Static assets
 ```

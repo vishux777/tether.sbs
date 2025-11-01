@@ -20,6 +20,9 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
     supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false }
     });
+    console.log('✅ Supabase Admin client initialized (can insert into Users2 table)');
+  } else {
+    console.warn('⚠️  SUPABASE_SERVICE_ROLE_KEY not set - profile insertion will fail');
   }
   
   console.log('Supabase client initialized');
